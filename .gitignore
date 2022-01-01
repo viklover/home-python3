@@ -1,0 +1,9 @@
+.vscode
+.idea
+venv
+cache/*
+bin/*
+tests
+tests/*
+configs/vkbot/token
+webserver
