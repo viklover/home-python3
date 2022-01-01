@@ -4,9 +4,13 @@
 venv
 
 bin/*
+bin/objects
 values/*
 databases/*
 logs/*
+configs/*.json
+configs/*.py
+audio
 
 __pycache__
 
