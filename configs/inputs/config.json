@@ -1,0 +1,24 @@
+{
+    "this" : 
+    {
+        "60" : 
+        {
+            "pin" : 40,
+            "name" : "M1",
+            "pull_ud" : true,
+            "opposite" : false,
+            "statistics" : true,
+            "resume" : 180,
+            "actions" : {
+                "on" : "action_on",
+                "off" : "action_off"
+            },
+            "flask" : {
+                "image" : {
+                    "on" : "static/items/m-on.png",
+                    "off" : "static/items/m-off.png"
+                }
+            }
+        }
+    }
+}

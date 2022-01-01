@@ -1,0 +1,14 @@
+{
+    "tasks" : 
+    {
+        "fields" : 
+        {
+            "name" : "STRING",
+            "condition" : "STRING",
+            "!perform_missed_tasks" : "BOOL",
+            "action" : "STRING",
+            "!folders" : "LIST",
+            "!files" : "LIST"
+        }
+    }
+}

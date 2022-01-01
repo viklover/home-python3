@@ -1,0 +1,11 @@
+{
+    "tasks" : 
+    [
+        {
+            "name" : "Logger cleaner",
+            "condition" : "every().day.at(\"05:00\")",
+            "action" : "clear_logs",
+            "save_days" : 90
+        }
+    ]
+}

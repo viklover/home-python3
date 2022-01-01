@@ -1,0 +1,194 @@
+{
+    "types" :
+    {
+        "tobject" : 
+        {
+            "name" : "tobject",
+            "bots" : {
+                "poll" : "» %(name)s — %(status)s",
+                "stats" : "%(name)s: %(score)s / %(dur)s",
+                "brief_keys" : ["score", "dur"]
+            },
+            "fields" : 
+            {
+                "name" : "STRING",
+                "statistics" : "INT",
+                "resume" : "INT",
+                "opposite" : "INT",
+                "!actions" : {
+                    "!on" : "STRING",
+                    "!off" : "STRING"
+                }
+            },
+            "database" : 
+            {
+                "events" : 
+                {
+                    "date" : "STRING",
+                    "on" : "FLOAT",
+                    "off" : "FLOAT",  
+                    "duration" : "FLOAT",
+                    "score" : "INT",
+                    "hour_on" : "INT",
+                    "hour_off" : "INT"
+                },
+                "stats" :
+                {
+                    "duration" : "FLOAT",
+                    "score" : "INT"
+                }
+            }
+        },
+        "vobject" : 
+        { 
+            "name" : "vobject",
+            "bots" : {
+                "poll" : "» %(name)s — %(vector)s%(value)s",
+                "stats" : "%(name)s: %(min)s < %(max)s ~ %(avg)s",
+                "brief_keys" : ["min", "max", "avg"]
+            },
+            "fields" : 
+            {
+                "name" : "STRING",
+                "statistics" : "INT",
+                "sleep" : "INT",
+                "!actual_value_duration " : "INT",
+                "!filter" : 
+                {
+                    "!variance" : "FLOAT|INT",
+                    "!max" : "FLOAT|INT",
+                    "!min" : "FLOAT|INT"
+                }
+            },
+            "database" : 
+            {
+                "events" : 
+                {
+                    "date" : "STRING",
+                    "time" : "FLOAT",
+                    "value" : "FLOAT"
+                },
+                "stats" :
+                {
+                    "min" : "FLOAT",
+                    "max" : "FLOAT",
+                    "avg" : "FLOAT"
+                }
+            }
+        }
+    },
+    "classes" : 
+    {
+        "inputs" : 
+        {
+            "name" : "inputs",
+            "type" : "tobject",
+            "class_name" : "input",
+            "code" : 0,
+            "object" : 
+            {
+                "name" : "Вход",
+                "name_plural" : "Входы"
+            },
+            "fields" :
+            {
+                "!pin" : "INT",
+                "pull_ud" : "BOOL"
+            }
+        },
+        "outputs" : 
+        {   
+            "name" : "outputs",
+            "type" : "tobject",
+            "class_name" : "output",
+            "code" : 1,
+            "object" : 
+            {
+                "name" : "Выход",
+                "name_plural" : "Выходы"
+            },
+            "fields" : 
+            {
+                "pin" : "INT",
+                "initital" : "BOOL"
+            }
+        },
+        "onewire" : 
+        {
+            "name" : "onewire",
+            "type" : "vobject",
+            "class_name" : "sensor",
+            "code" : 2,
+            "object" : 
+            {
+                "name" : "Датчик темпаратуры",
+                "name_plural" : "Датчики температуры"
+            },
+            "fields" : 
+            {
+                "serial_number" : "STRING",
+                "!vector" : 
+                {
+                    "!variance" : "FLOAT|INT",
+                    "!interval" : "INT"
+                }
+            }
+        },
+        "triggers" : 
+        {
+            "name" : "triggers",
+            "type" : "tobject",
+            "class_name" : "trigger",
+            "code" : 3,
+            "object" : 
+            {
+                "name" : "Триггер",
+                "name_plural" : "Триггеры"
+            },
+            "fields" : 
+            {
+                "!sleep" : "INT|FLOAT"
+            },
+            "files" : [
+                "configs/%(class)s/conditions.py"
+            ]
+        }
+    },
+    "kinds" :
+    {
+        "inputs" : 
+        {
+            "serial" :
+            {
+                "name" : "serial",
+                "type" : "tobject",
+                "class" : "inputs",
+                "code" : 1,
+                "object" : 
+                {
+                    "name" : "Серийный порт"
+                },
+                "fields" : 
+                {
+                    "path" : "STRING"
+                }
+            }
+        },
+        "onewire" : 
+        {
+            "serial" : 
+            {
+                "name" : "serial",
+                "type" : "vobject",
+                "class" : "onewire",
+                "object" : {
+                    "name" : "Серийный порт"
+                },
+                "fields" : 
+                {
+                    "path" : "STRING"
+                }
+            }
+        }
+    }
+}

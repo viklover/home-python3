@@ -1,0 +1,42 @@
+{
+    "this" : 
+    {
+        "3561" : 
+        {
+            "kind" : "serial",
+            "serial_number" : "28-AA55D1521401F9",
+            "path" : "/dev/ttyArduino",
+            "actual_value_duration" : 900,
+            "name" : "Улица",
+            "statistics" : true,
+            "sleep" : 30,
+            "filter" : {
+                "variance" : 2.0,
+                "max" : 50.0,
+                "min" : -50.0
+            },
+            "vector" : 
+            {
+                "variance" : 0.4,
+                "attempts" : 1,
+                "interval" : 8
+            },
+            "flask" : 
+            {
+                "colors" : 
+                {
+                    "values" : 
+                    {
+                        "-20.0" : ["blue", "darkblue"],
+                        "-10.0" : ["blue", "lightblue"],
+                        "0.0" : ["lightblue", "#369B69"],
+                        "10.0" : ["#369B69", "#63D222"],
+                        "20.0" : ["#63D222", "#93A521"],
+                        "25.0" : ["#E4940B", "#FAEA0A"],
+                        "30.0" : ["#E4940B", "#E47F0B"]
+                    }
+                }
+            }
+        }
+    }
+}

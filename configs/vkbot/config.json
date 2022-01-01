@@ -1,0 +1,65 @@
+{
+    "user_categories" : [
+        ["security", false]
+    ],
+    "keyboards" : 
+    {
+        "main" : 
+        {
+            "inline" : false,
+            "one_time" : false,
+            "lines" : [
+                [
+                    {
+                        "type" : "text",
+                        "label" : "Опрос",
+                        "color" : "PRIMARY"
+                    },
+                    {
+                        "type" : "text",
+                        "label" : "Статистика",
+                        "color" : "PRIMARY"
+                    }
+                ],
+                [
+                    {
+                        "type" : "text",
+                        "label" : "Охрана",
+                        "color" : "SECONDARY"
+                    }
+                ]
+            ]
+        },
+        "security" : 
+        {
+            "inline" : true,
+            "one_time" : false,
+            "lines" : [
+                [
+                    {
+                        "type" : "text",
+                        "label" : "Включить охрану",
+                        "color" : "POSITIVE"
+                    }
+                ],
+                [
+                    {
+                        "type" : "text",
+                        "label" : "Выключить охрану",
+                        "color" : "NEGATIVE"
+                    }
+                ]
+            ]
+        }
+    },
+    "actions" : 
+    {
+        "опрос" : "send_str_poll",
+        "~статистика" : "send_stats",
+        "охрана" : "send_security_choice",
+        "включить охрану" : "set_security_category",
+        "выключить охрану" : "set_security_category",
+        "!reboot" : "reboot_program",
+        "!shutdown" : "shutdown_program"
+    }
+}

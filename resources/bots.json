@@ -1,0 +1,108 @@
+{
+    "bot" : 
+    {
+        "fields" : 
+        {
+            "actions" : "DICT"
+        },
+        "files" : [
+            "configs/%(name)s/token"
+        ]
+    },
+    "vkbot" : 
+    {
+        "fields" : 
+        {
+            "!chat_for_clients" : "INT",
+            "!user_categories" : "LIST",
+            "keyboards" :
+            {
+                "main" : "DICT",
+                "?" : "DICT"
+            },
+            "actions" : 
+            {
+                "?" : "STRING"
+            }
+        },
+        "database" : 
+        {
+            "chats" : 
+            {
+                "id" : "STRING",
+                "code" : "INT",
+                "logged" : "BOOL",
+                "keyboard" : "STRING",
+                "for_clients" : "BOOL"
+            }
+        },
+        "files" : [
+            "configs/%(name)s/group_id"
+        ],
+        "keyboard" : 
+        {
+            "fields" : 
+            {
+                "inline" : "BOOL",
+                "one_time" : "BOOL",
+                "lines" : "LIST"
+            },
+            "sizes" : 
+            {
+                "inline" : [5, 6],
+                "standart" : [5, 10]
+            },
+            "count" : 
+            {
+                "inline" : 10,
+                "standart" : 40
+            },
+            "types" : 
+            {
+                "text" : 
+                {
+                    "label" : "STRING",
+                    "!color" : "STRING",
+                    "!payload" : "STRING"
+                },
+                "location" : 
+                {
+                    "payload" : "STRING"
+                },
+                "openlink" : 
+                {
+                    "link" : "STRING",
+                    "label" : "STRING",
+                    "!payload" : "STRING"
+                },
+                "vkpay" : 
+                {
+                    "payload" : "STRING",
+                    "hash" : "STRING"
+                },
+                "open_app" : 
+                {
+                    "app_id" : "INTEGER",
+                    "owner_id" : "INTEGER",
+                    "!payload" : "STRING",
+                    "label" : "STRING",
+                    "hash" : "STRING"
+                },
+                "callback" : 
+                {
+                    "label" : "STRING",
+                    "!color" : "STRING",
+                    "!payload" : "STRING"
+                }
+            },
+            "add_funcs" : {
+                "text" : ["add_button", ["label"]],
+                "location" : ["add_location_button", []],
+                "link" : ["add_openlink_button", ["label", "link"]],
+                "vkpay" : ["add_vkpay_button", ["hash"]],
+                "open_app" : ["add_vkapps_button", ["app_id", "owner_id", "label", "hash"]]
+            },
+            "colors" : ["PRIMARY", "SECONDARY", "POSITIVE", "NEGATIVE"]
+        }
+    }
+}
