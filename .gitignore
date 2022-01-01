@@ -8,6 +8,8 @@ values/*
 databases/*
 logs/*
 
+__pycache__
+
 token
 group_id
 
