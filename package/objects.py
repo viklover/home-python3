@@ -55,6 +55,11 @@ class Object(Block, Thread):
     def get_name(self):
         return self.configurations['name']
 
+    def get_short_name(self):
+        if 'short_name' in self.configurations:
+            return self.configurations['short_name']
+        return None
+
     def get_type(self):
         return self._type
 
@@ -247,6 +252,8 @@ class TObject(Object):
         return self.score
 
     def get_current_duration(self):
+        if self.last_event is None:
+            return time.time() - self.last_update
         return time.time() - self.last_event['time']
 
     def get_poll(self, string=False):
@@ -1305,7 +1312,6 @@ class Sensor(VObject):
 
         self.last_event = event
         self.last_update = seconds
-        self.first = False
 
         if not success and not self.first:
             self.fail = True
@@ -1351,6 +1357,8 @@ class Sensor(VObject):
         if (self.last_success_event is None) or (
                 time.time() - self.last_success_event['time'] > self.actual_value_duration):
             self.save_value("None")
+            
+        self.first = False
 
     def read_value(self):
 
@@ -1391,12 +1399,12 @@ class Sensor(VObject):
         lines = get_lines()
 
         if not lines:
-            return 0, 0
+            return False, None
 
         if lines[0].strip()[-3:] == 'YES':
 
             if lines[0][lines[0].find('crc=') + 4:].split()[0] == '00' or lines[1].find('t=') == -1:
-                return 0, 0
+                return False, None
 
             value = round(float(lines[1][lines[1].find('t=') + 2:]) / 1000.0, 1)
 

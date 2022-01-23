@@ -84,6 +84,7 @@
             "name" : "inputs",
             "type" : "tobject",
             "class_name" : "input",
+            "short_name" : "Входы",
             "code" : 0,
             "object" : 
             {
@@ -101,6 +102,7 @@
             "name" : "outputs",
             "type" : "tobject",
             "class_name" : "output",
+            "short_name" : "Выходы",
             "code" : 1,
             "object" : 
             {
@@ -118,6 +120,7 @@
             "name" : "onewire",
             "type" : "vobject",
             "class_name" : "sensor",
+            "short_name" : "Датчики температуры",
             "code" : 2,
             "object" : 
             {
@@ -139,6 +142,7 @@
             "name" : "triggers",
             "type" : "tobject",
             "class_name" : "trigger",
+            "short_name" : "Триггеры",
             "code" : 3,
             "object" : 
             {

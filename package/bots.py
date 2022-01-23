@@ -23,8 +23,8 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 class Bot(Block, Thread):
 
     def __init__(self, program, name):
-        Thread.__init__(self)
         Block.__init__(self, name.capitalize())
+        Thread.__init__(self)
 
         self.name = name
         self.program = program
@@ -44,9 +44,6 @@ class Bot(Block, Thread):
 
         self.__prepare_variables()
         self.__prepare_table()
-
-        self.__import_settings()
-        self.__import_chats()
 
     def __check_config_files(self):
 
@@ -388,7 +385,7 @@ class VKBot(Bot):
 
     def __init__(self, program):
         Bot.__init__(self, program, 'vkbot')
-
+        
         # TASK MANAGER
         self.vk = None
         self.longpoll = None
@@ -406,8 +403,17 @@ class VKBot(Bot):
         if self.__check_keyboard_config():
             self.__init_keyboards()
 
+        self.__import_settings()
         self.__import_chats()
-        self.__prepare_tasks()
+
+        self.__prepare_tasks()        
+
+    def __import_settings(self):
+
+        self._Bot__import_settings()
+
+        with open(f'{BASE_DIR}/configs/{self.name}/group_id') as f:
+            self.group_id = int(f.read())
 
     def __import_chats(self):
 
@@ -433,13 +439,6 @@ class VKBot(Bot):
             for category, value in categories.items():
                 if value == True and category in self.user_categories:
                     self.category_users[category].append(self.chats[id])
-
-    def __import_settings(self):
-
-        super().__import_settings()
-
-        with open(f'{BASE_DIR}/configs/{self.name}/token') as f:
-            self.group_id = int(f.read())
 
     def __check_keyboard_config(self):
 

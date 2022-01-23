@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import socket
 import functools
 import websockets
@@ -49,6 +50,7 @@ class ObjectManager(Block):
 
         self.type_configs = dict()
         self.list_for_stats = list()
+        self.shortnames_classes = dict()
 
         self.objects = [[], [], [], []]
 
@@ -62,6 +64,8 @@ class ObjectManager(Block):
 
             type_index = self.objects[0].index(config["classes"][_class]["type"])
             class_index = len(self.objects[1][type_index])
+
+            self.shortnames_classes[_class] = config["classes"][_class]["short_name"]
 
             self.objects[1][type_index].append(_class)
             self.objects[2][type_index].append(list())
@@ -609,12 +613,25 @@ class ClientManager(Block, Thread):
 
         def run(self):
 
-            asyncio.set_event_loop(asyncio.new_event_loop())
 
-            start_server = websockets.serve(self.new_connection, '192.168.1.3', self.port)
+            while self.program.get_status():
 
-            asyncio.get_event_loop().run_until_complete(start_server)
-            asyncio.get_event_loop().run_forever()
+                try:
+
+                    asyncio.set_event_loop(asyncio.new_event_loop())
+
+                    start_server = websockets.serve(self.new_connection, '192.168.1.3', self.port)
+
+                    asyncio.get_event_loop().run_until_complete(start_server)
+
+                    self.log_msg(100110)
+
+                    asyncio.get_event_loop().run_forever()
+
+                except OSError:
+                    self.log_msg(100111, color='orange')
+                    
+                time.sleep(120)
 
     def __init__(self, program):
         Block.__init__(self, 'ClientManager')
@@ -636,42 +653,60 @@ class ClientManager(Block, Thread):
 
     def __prepare_variables(self):
 
-        types = []
-        classes = []
-        objects = []
+        def prepare_struct():
 
-        self.struct = self.program.object_manager.objects.copy()
+            types = []
+            classes = []
+            objects = []
 
-        resources = json.load(open(f"{BASE_DIR}/resources/objects.json"))
+            self.struct = self.program.object_manager.objects.copy()
 
-        for _type in self.struct[0]:
-            type_index = self.struct[0].index(_type)
+            for _type in self.struct[0]:
+                type_index = self.struct[0].index(_type)
 
-            types.append(resources['types'][_type])
+                types.append(_type)
 
-            classes.append([])
-            objects.append([])
+                classes.append([])
+                objects.append([])
 
-            for _class in self.struct[1][type_index]:
-                class_index = self.struct[1][type_index].index(_class)
+                for _class in self.struct[1][type_index]:
+                    class_index = self.struct[1][type_index].index(_class)
 
-                classes[type_index].append(resources['classes'][_class])
-                objects[type_index].append([])
+                    classes[type_index].append(_class)
+                    objects[type_index].append([])
 
-                for obj in self.struct[2][type_index][class_index]:
-                    del obj.configurations['program']
-                    config = {
-                        'id': obj.get_id(),
-                        'kind': obj.get_kind(),
-                        **obj.configurations
-                    }
-                    objects[type_index][class_index].append(config)
+                    for obj in self.struct[2][type_index][class_index]:
+                        objects[type_index][class_index].append({
+                            'id' : obj.get_id(),
+                            'name' : obj.get_name(),
+                            'short_name' : obj.get_short_name()
+                        })
 
-        self.struct[0] = types
-        self.struct[1] = classes
-        self.struct[2] = objects
+            self.struct[0] = types
+            self.struct[1] = classes
+            self.struct[2] = objects
 
-        # self.struct = [*self.struct[0:2], self.struct[3]]
+        def prepare_short_struct():
+            
+            self.short_struct = [[], []]
+
+            for classes in self.struct[1]:
+                self.short_struct[0].extend(classes)
+
+            for _ in range(len(self.short_struct[0])):    
+                self.short_struct[1].append([])
+
+            for index in range(len(self.short_struct[0])):
+                
+                for obj in self.program.object_manager.get_objects_by_class(
+                    self.short_struct[0][index], conds={
+                    "_statistics" : True
+                }):
+                    self.short_struct[1][index].append(int(obj.get_id()))
+
+        prepare_struct()
+        prepare_short_struct()
+
 
     def run(self):
 
@@ -735,7 +770,6 @@ class ClientManager(Block, Thread):
             self.send_message(client, "{'response' : 'get_api_v'}")
 
         args = {}
-        # api_v = data['api']
 
         if 'args' in data:
             args = data['args']
@@ -758,40 +792,68 @@ class ClientManager(Block, Thread):
                     return
 
             elif data['request'] == 'get_struct':
-                response['args']['struct'] = {}
-                response['args']['struct']['objects'] = self.struct
+                response['struct'] = self.struct
                 self.send_message(client, json.dumps(response))
                 return
 
+            elif data['request'] == 'get_short_struct':
+                response['struct'] = self.short_struct
+                self.send_message(client, json.dumps(response))
+                return
+
+            # elif data['request'] == 'get_classes':
+            #     classes = list()
+            #     map(lambda i: classes.extend(i), self.struct[1])
+            #     response['classes'] = classes
+            #     self.send_message(client, json.dumps(response))
+            #     return
+
+            elif data['request'] == 'get_object':
+
+                if 'id' in args:
+                    obj = self.program.object_manager.get_object_by_id(args["id"])
+                    response['object'] = {}
+                    response['object']['name'] = obj.get_name()
+                    response['object']['short_name'] = obj.get_short_name()
+                    self.send_message(client, json.dumps(response))
+                    return
+            
+            elif data['request'] == 'get_shortname_class':
+
+                if 'class' in args:
+                    response['short_name'] = self.program.object_manager.shortnames_classes[args["class"]]
+                    self.send_message(client, json.dumps(response))
+                    return
+
             elif data['request'] == 'get_date_bounds':
-                response['args']['bounds'] = self.program.time_handler.get_date_borders()
+                response['bounds'] = self.program.time_handler.get_date_borders()
                 self.send_message(client, json.dumps(response))
                 return
 
             elif data['request'] == 'get_values':
-                response['args']['objects'] = self.program.object_manager.get_poll_dict()
+                response['objects'] = self.program.object_manager.get_poll_dict()
                 self.send_message(client, json.dumps(response))
                 return
 
             elif data['request'] == 'poll':
-                response['args']['objects'] = self.program.object_managet.get_poll_dict()
+                response['objects'] = self.program.object_managet.get_poll_dict()
                 self.send_message(client, json.dumps(response))
                 return
 
             elif data['request'] == 'get_stats':
 
                 if 'day' in args:
-                    response['args']['stats'] = self.program.statistics.get_day_data(args['day'])
+                    response['stats'] = self.program.statistics.get_day_data(args['day'])
                     self.send_message(client, json.dumps(response))
                     return
 
                 if 'month' in args:
-                    response['args']['stats'] = self.program.statistics.get_month_data(args['month'])
+                    response['stats'] = self.program.statistics.get_month_data(args['month'])
                     self.send_message(client, json.dumps(response))
                     return
 
                 if 'year' in args:
-                    response['args']['stats'] = self.program.statistics.get_year_data(args['year'])
+                    response['stats'] = self.program.statistics.get_year_data(args['year'])
                     self.send_message(client, json.dumps(response))
                     return
 
