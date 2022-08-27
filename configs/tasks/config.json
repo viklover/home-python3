@@ -2,10 +2,20 @@
     "tasks" : 
     [
         {
-            "name" : "Logger cleaner",
-            "condition" : "every().day.at(\"05:00\")",
-            "action" : "clear_logs",
-            "save_days" : 90
+            "name" : "Септик наполнен?",
+            "condition" : "every().day.at(\"08:30\")",
+            "perform_missed_tasks" : false,
+            "action" : "septic_status_alert"
+        },
+        {
+            "name" : "Болер в норме?",
+            "condition" : "every().day.at(\"08:00\")",
+            "action" : "send_ratio_boler"
+        },
+        {
+            "name" : "Статистика за вчерашний день?",
+            "condition" : "every().day.at(\"08:30\")",
+            "action" : "send_yesterday_stats"
         }
     ]
 }

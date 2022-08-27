@@ -2,6 +2,7 @@ import os
 import time
 import json
 import datetime
+import traceback
 
 import vk_api
 import telebot
@@ -660,12 +661,40 @@ class VKBot(Bot):
 
     def send_message(self, chat_id, text, keyboard):
 
+<<<<<<< HEAD
         self.session.messages.send(
             peer_id=chat_id,
             message=text,
             random_id=randint(1, 121314),
             keyboard=keyboard
         )
+=======
+                if action == 'send_message':
+                    chat_id, text = args
+
+                    if 'keyboard' in kwargs and not kwargs['keyboard'] in self.keyboards:
+                        self.log_msg(633, (kwargs['keyboard']))
+                        keyboard = None
+                    elif 'keyboard' not in kwargs:
+                        keyboard = None
+                    else:
+                        keyboard = kwargs['keyboard']
+
+                    if isinstance(chat_id, str):
+                        if chat_id.isdigit():
+                            chat_id = int(chat_id)
+
+                    try:
+                        send_message(chat_id, text, self.keyboards[keyboard])
+                    except Exception:
+                        traceback.print_exc()
+
+                    del self.tasks[index]
+
+            self.lock.release()
+
+            time.sleep(0.6)
+>>>>>>> experiment
 
     def run(self):
 
@@ -707,6 +736,7 @@ class VKBot(Bot):
                 try:
                     self.listen_longpoll()
                 except Exception:
+                    traceback.print_exc()
                     continue
 
     def listen_longpoll(self):

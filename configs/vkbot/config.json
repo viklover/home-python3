@@ -1,6 +1,8 @@
 {
+    "chat_for_clients" : 2000000003,
     "user_categories" : [
-        ["security", false]
+        ["security", false],
+        ["stats", true]
     ],
     "keyboards" : 
     {
@@ -27,6 +29,13 @@
                         "label" : "Охрана",
                         "color" : "PRIMARY"
                     }
+                ],
+                [
+                    {
+                        "type" : "text",
+                        "label" : "Ежедневные уведомления",
+                        "color" : "SECONDARY"
+                    }
                 ]
             ]
         },
@@ -50,13 +59,37 @@
                     }
                 ]
             ]
+        },
+        "stats" :   
+        {
+            "inline" : true,
+            "one_time" : false,
+            "lines" : [
+                [
+                    {
+                        "type" : "text",
+                        "label" : "Включить статистику",
+                        "color" : "POSITIVE"
+                    }
+                ],
+                [
+                    {
+                        "type" : "text",
+                        "label" : "Выключить статистику",
+                        "color" : "NEGATIVE"
+                    }
+                ]
+            ]
         }
     },
     "actions" : 
     {
         "опрос" : "send_str_poll",
+        "включить статистику" : "set_stats_category",
+        "выключить статистику" : "set_stats_category",
         "~статистика" : "send_stats",
         "охрана" : "send_security_choice",
+        "ежедневные уведомления" : "send_stats_choice",
         "включить охрану" : "set_security_category",
         "выключить охрану" : "set_security_category",
         "!reboot" : "reboot_program",
