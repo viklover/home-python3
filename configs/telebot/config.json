@@ -1,0 +1,35 @@
+{
+    "user_categories" : [
+        ["security", false]
+    ],
+    "keyboards" : 
+    {
+        "main" : 
+        {
+            "inline_keyboard": [
+                [
+                    {
+                        "text": "some text",
+                        "callback_data": "some callback_data"
+                    }
+                ],  
+                [
+                    {
+                        "text": "some tex 2t",
+                        "callback_data": "some callback_data 2" 
+                    }
+                ]
+            ]
+        }
+    },
+    "actions" : 
+    {
+        "опрос" : "send_str_poll",
+        "~статистика" : "send_stats",
+        "охрана" : "send_security_choice",
+        "включить охрану" : "set_security_category",
+        "выключить охрану" : "set_security_category",
+        "!reboot" : "reboot_program",
+        "!shutdown" : "shutdown_program"
+    }
+}

@@ -25,7 +25,7 @@
                     {
                         "type" : "text",
                         "label" : "Охрана",
-                        "color" : "SECONDARY"
+                        "color" : "PRIMARY"
                     }
                 ]
             ]
@@ -60,6 +60,8 @@
         "включить охрану" : "set_security_category",
         "выключить охрану" : "set_security_category",
         "!reboot" : "reboot_program",
-        "!shutdown" : "shutdown_program"
+        "!shutdown" : "shutdown_program",
+        "сделай чат клиентским": "chat_for_clients",
+        "сделай чат пользовательским": "chat_for_clients"
     }
 }

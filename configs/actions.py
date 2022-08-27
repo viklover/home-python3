@@ -48,18 +48,30 @@ def play_track(track):
 
 
 def send_str_poll(program, vars, args):
-    program.vkbot.add_task('send_message', [args['chat_id'], program.object_manager.get_poll_string()],
-                           {'keyboard': 'main'})
+    args['chat'].send_message(program.object_manager.get_poll_string())
+    # program.vkbot.add_task('send_message', [args['chat_id'], program.object_manager.get_poll_string()],
+    #                        {'keyboard': 'main'})
 
 
 def send_stats(program, vars, args):
-    program.vkbot.add_task('send_message', [args['chat_id'], program.statistics.get_stats_from_str(args['text'])],
-                           {'keyboard': 'main'})
+    args['chat'].send_message(program.statistics.get_stats_from_str(args['text']))
+    # program.vkbot.add_task('send_message', [args['chat_id'], program.statistics.get_stats_from_str(args['text'])],
+    #                        {'keyboard': 'main'})
 
 
 def send_security_choice(program, vars, args):
-    program.vkbot.add_task('send_message', [args['chat_id'], 'Охрана'], {'keyboard': 'security'})
+    args['chat'].send_message('Охрана')
+    # program.vkbot.add_task('send_message', [args['chat_id'], 'Охрана'], {'keyboard': 'security'})
 
+def set_chat_for_clients_state(program, vars, args):
+
+    if 'клиентским' in args['text']:
+        args['chat'].set_chat_for_clients_state(False)
+    
+    if 'пользовательским' in args['text']:
+        args['char'].set_chat_for_clients_state(True)
+
+    args['chat'].send_message('Категория чата изменена')
 
 def set_security_category(program, vars, args):
     value = False
@@ -67,8 +79,8 @@ def set_security_category(program, vars, args):
     if 'включить' in args['text']:
         value = True
 
-    program.vkbot.chats[args['chat_id']].set_category('security', value)
-    program.vkbot.chats[args['chat_id']].send_message('Настройки были изменены')
+    args['chat'].set_category('security', value)
+    args['chat'].send_message('Настройки были изменены')
 
 
 def reboot_program(program, vars, args):
@@ -95,5 +107,6 @@ actions = {
     "set_security_category": set_security_category,
     "reboot_program": reboot_program,
     "shutdown_program": shutdown_program,
-    "clear_logs": clear_logs
+    "clear_logs": clear_logs,
+    "chat_for_clients": set_chat_for_clients_state
 }

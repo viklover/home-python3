@@ -160,16 +160,20 @@ class Database:
         self.execute((curs, conn), request)
         self.close((curs, conn))
 
-    def select(self, table, columns=["*"], conds=[], last=False, ifnull=False, quotes=True, unpack=False):
-
-        curs, conn = self.open()
+    def select_req(self, table, columns=["*"], conds=[], last=False, ifnull=False, quotes=True):
 
         columns = self.__create_columns(columns, quotes=quotes)
         conds = self.__create_conditions(conds)
 
         sort = "ORDER BY rowid DESC LIMIT 1" if last else ""
 
-        request = f'SELECT {columns} FROM "{table}" {conds} {sort}'
+        return f'SELECT {columns} FROM "{table}" {conds} {sort}'
+
+    def select(self, table, columns=["*"], conds=[], last=False, ifnull=False, quotes=True, unpack=False):
+
+        curs, conn = self.open()
+
+        request = self.select_req(table, columns, conds, last, ifnull, quotes)
 
         self.execute((curs, conn), request)
 
@@ -191,10 +195,12 @@ class Database:
 
         curs, conn = self.open()
 
-        columns = self.__create_columns(columns, quotes=quotes)
-        conds = self.__create_conditions(conds)
+        # columns = self.__create_columns(columns, quotes=quotes)
+        # conds = self.__create_conditions(conds)
 
-        request = f'SELECT EXISTS (SELECT {columns} FROM "{table}" {conds})'
+        select_req = self.select_req(table, columns=columns, conds=conds, quotes=False)
+
+        request = f'SELECT EXISTS ({select_req})'
 
         self.execute((curs, conn), request)
 

@@ -57,8 +57,8 @@ class Object(Block, Thread):
 
     def get_short_name(self):
         if 'short_name' in self.configurations:
-            return self.configurations['short_name']
-        return None
+            return self.configurations['short_name'][:5]
+        return self.configurations['name'][:5]
 
     def get_type(self):
         return self._type
@@ -96,8 +96,11 @@ class Object(Block, Thread):
 
     def __send_to_clients(self, event):
         data = {
-            'event': event,
-            'id': self._id
+            'event': 'update_values',
+            'content': {
+                **event,
+                'id': self._id
+            }
         }
 
         self._program.client_manager.send_message_to_all(json.dumps(data), True)
@@ -1643,7 +1646,7 @@ class Input(TObject):
             "date": date,
             "time": seconds,
             "score": self.score,
-            "status": self.status,
+            "status": self.status
         }
 
         self.__set_event(event)

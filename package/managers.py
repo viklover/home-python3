@@ -2,6 +2,7 @@ import os
 import json
 import time
 import socket
+import traceback
 import functools
 import websockets
 import asyncio
@@ -49,6 +50,7 @@ class ObjectManager(Block):
         config = json.load(open(f"{BASE_DIR}/resources/objects.json"))
 
         self.type_configs = dict()
+        self.classes_configs = dict()
         self.list_for_stats = list()
         self.shortnames_classes = dict()
 
@@ -66,6 +68,8 @@ class ObjectManager(Block):
             class_index = len(self.objects[1][type_index])
 
             self.shortnames_classes[_class] = config["classes"][_class]["short_name"]
+
+            self.classes_configs = config["classes"]
 
             self.objects[1][type_index].append(_class)
             self.objects[2][type_index].append(list())
@@ -385,6 +389,8 @@ class ClientManager(Block, Thread):
             self.conn = config['conn']
             self.addr = config['addr']
 
+            self.sending_sock = None
+
         def run(self):
 
             while self.program.get_status():
@@ -398,17 +404,31 @@ class ClientManager(Block, Thread):
                         udata = data.decode('utf-8')
                         json_data = json.loads(udata)
 
+                        print(json_data)
+
                         self.manager.process_request(self, json_data)
                     except ConnectionError:
                         pass
                     except json.decoder.JSONDecodeError:
+                        pass
+                    except Exception:
                         pass
 
                 except ConnectionResetError:
                     break
 
         def send(self, message):
-            self.conn.send(message.encode())
+            if self.sending_sock:
+                self.sending_sock.send(message.encode())
+            else:
+                self.conn.send(message.encode())
+            print(' - sending', message)
+
+        def connect_socket(self, socket_data):
+            self.sending_sock = socket.socket()
+            self.sending_sock.connect(tuple(socket_data))
+            print('connected', self.sending_sock)
+
 
     class SocketServer(Block, Thread):
 
@@ -471,6 +491,8 @@ class ClientManager(Block, Thread):
                     'name': f'SocketClient {addr[0]}:{addr[1]}',
                     'program': self.program
                 }
+
+                print(conn)
 
                 client = ClientManager.SocketClient(config)
                 client.start()
@@ -687,22 +709,32 @@ class ClientManager(Block, Thread):
             self.struct[2] = objects
 
         def prepare_short_struct():
-            
+
+            self.classes_info = []
+            self.objects_info = {}
+
             self.short_struct = [[], []]
 
-            for classes in self.struct[1]:
-                self.short_struct[0].extend(classes)
+            classnames = {}
 
-            for _ in range(len(self.short_struct[0])):    
-                self.short_struct[1].append([])
+            for classname in self.program.object_manager.classes_configs:
+                self.classes_info.append({
+                    'type': self.program.object_manager.classes_configs[classname]['type'],
+                    'name': classname,
+                    'short_name': self.program.object_manager.classes_configs[classname]['short_name']
+                })
 
-            for index in range(len(self.short_struct[0])):
-                
+            for class_data in self.classes_info:
+                self.objects_info[class_data['name']] = []
+
                 for obj in self.program.object_manager.get_objects_by_class(
-                    self.short_struct[0][index], conds={
+                    class_data['name'], conds={
                     "_statistics" : True
                 }):
-                    self.short_struct[1][index].append(int(obj.get_id()))
+                    self.objects_info[class_data['name']].append({
+                        'id': obj.get_id(),
+                        'short_name': obj.get_short_name()
+                    })
 
         prepare_struct()
         prepare_short_struct()
@@ -733,13 +765,6 @@ class ClientManager(Block, Thread):
             self.tasks.task_done()
 
         self.tasks.join()
-
-        # BrokenPipeError, 
-        # ConnectionResetError, 
-        # websockets.exceptions.ConnectionClosedOK, 
-        # websockets.exceptions.ConnectionClosedError, 
-        # ConnectionResetError, 
-        # RuntimeError 
 
     def add_client(self, client):
         self.lock.acquire()
@@ -774,15 +799,27 @@ class ClientManager(Block, Thread):
         if 'args' in data:
             args = data['args']
 
+        if 'id' in data:
+            req_id = data['id']
+        else:
+            req_id = random.randint(10000, 31500)
+
         if 'request' in data:
 
             response = {
                 'response': data['request'],
-                'args': {}
+                'args': {},
+                'id': req_id
             }
 
             if data['request'] == 'is_alive':
-                self.send_message(client, "{'response' : 'is_alive'}")
+                self.send_message(client, json.dumps(response))
+                return
+
+            elif data['request'] == 'connect_socket':
+                client.connect_socket(args['socket'])
+                # client.set_ready(True)
+                self.send_message(client, json.dumps(response))
                 return
 
             elif data['request'] == 'set_ready':
@@ -796,17 +833,16 @@ class ClientManager(Block, Thread):
                 self.send_message(client, json.dumps(response))
                 return
 
-            elif data['request'] == 'get_short_struct':
-                response['struct'] = self.short_struct
+            elif data['request'] == 'get_classes_info':
+                response['classes'] = self.classes_info
                 self.send_message(client, json.dumps(response))
                 return
 
-            # elif data['request'] == 'get_classes':
-            #     classes = list()
-            #     map(lambda i: classes.extend(i), self.struct[1])
-            #     response['classes'] = classes
-            #     self.send_message(client, json.dumps(response))
-            #     return
+            elif data['request'] == 'get_objects_info':
+                if 'class' in args and args['class'] in self.objects_info:
+                    response['objects'] = self.objects_info[args['class']]
+                self.send_message(client, json.dumps(response))
+                return
 
             elif data['request'] == 'get_object':
 
@@ -904,7 +940,8 @@ class ActionManager(Block, Thread):
 
             try:
                 self.list_of_actions[name](self.program, self.vars, args)
-            except ZeroDivisionError as e:
+            except Exception as e:
+                traceback.print_exec()
                 self.log_msg(82, (name, e), color='red')
 
             self.tasks.task_done()

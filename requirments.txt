@@ -2,3 +2,4 @@ pyserial
 vk_api
 schedule
 websockets
+pyTelegramBotAPI

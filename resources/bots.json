@@ -102,7 +102,37 @@
                 "vkpay" : ["add_vkpay_button", ["hash"]],
                 "open_app" : ["add_vkapps_button", ["app_id", "owner_id", "label", "hash"]]
             },
-            "colors" : ["PRIMARY", "SECONDARY", "POSITIVE", "NEGATIVE"]
+            "colors" : ["PRIMARY", "DEFAULT", "POSITIVE", "NEGATIVE"]
         }
+    },
+    "telebot" : 
+    {
+        "fields" : 
+        {
+            "!chat_for_clients" : "INT",
+            "!user_categories" : "LIST",
+            "keyboards" :
+            {
+                "main" : "DICT",
+                "?" : "DICT"
+            },
+            "actions" : 
+            {
+                "?" : "STRING"
+            }
+        },
+        "database" : 
+        {
+            "chats" : 
+            {
+                "id" : "STRING",
+                "code" : "INT",
+                "logged" : "BOOL",
+                "keyboard" : "STRING",
+                "for_clients" : "BOOL"
+            }
+        },
+        "files" : [],
+        "keyboard" : "DICT"
     }
 }

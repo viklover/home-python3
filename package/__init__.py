@@ -27,7 +27,7 @@ options = {
     "-l": 0
 }
 
-from .bots import VKBot
+from .bots import VKBot, TeleBot
 from .block import colors
 from .dates import Time, Date
 from .funcs import get_type_list
@@ -74,6 +74,7 @@ class Home(object):
             self.task_manager = TaskManager(self)
             self.client_manager = ClientManager(self)
             self.vkbot = VKBot(self)
+            self.telebot = TeleBot(self)
 
             # START BLOCKS
 
@@ -84,6 +85,7 @@ class Home(object):
             self.object_manager.start()
             self.client_manager.start()
             self.vkbot.start()
+            self.telebot.start()
 
             self.time_handler.join()
 
@@ -101,9 +103,6 @@ class Home(object):
 
         if not os.path.isfile(f'{BASE_DIR}/bin/shutdown'):
             self.shutdown_reason = None
-
-            # return - выход из функции
-
             return
 
         with open(f'{BASE_DIR}/bin/shutdown', 'r') as f:

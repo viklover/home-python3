@@ -4,6 +4,7 @@ import json
 import datetime
 
 import vk_api
+import telebot
 
 from . import BASE_DIR, CONFIG, MESSAGES
 from .db import Database
@@ -30,6 +31,12 @@ class Bot(Block, Thread):
         self.program = program
         self.daemon = True
 
+        self.tasks = []
+        self.lock = Lock()
+
+        self.tasks_thread = Thread(target=self.tasks_loop, daemon=True)
+        self.was_started = False
+
         self.database = Database(f'{BASE_DIR}/databases/{name}', log_dir=f'{BASE_DIR}/logs')
         self.configurations = json.load(open(f'{BASE_DIR}/configs/{name}/config.json'))
 
@@ -39,7 +46,10 @@ class Bot(Block, Thread):
 
     def __initilize(self):
 
-        if not self.__check_config_files():
+        self.status_checking = self.__check_config_files()
+
+        if not self.status_checking:
+            print('ошибка проверки конфиг файлов')
             return
 
         self.__prepare_variables()
@@ -286,8 +296,60 @@ class Bot(Block, Thread):
     def __import_chats(self):
         pass
 
+    def add_task(self, action, args, kwargs={}):
+        self.lock.acquire()
+        self.tasks.append((action, args, kwargs))
+        self.lock.release()
+
+    def tasks_loop(self):
+
+        while self.program.get_status():
+
+            self.lock.acquire()
+
+            for index, task in enumerate(self.tasks):
+
+                action, args, kwargs = task
+
+                if action == 'send_message':
+                    chat_id, text = args
+
+                    print(self.keyboards)
+
+                    if 'keyboard' in kwargs and not kwargs['keyboard'] in self.keyboards:
+                        self.log_msg(633, (kwargs['keyboard']))
+                        keyboard = None
+                    elif 'keyboard' not in kwargs:
+                        keyboard = None
+                    else:
+                        keyboard = kwargs['keyboard']
+
+                    if isinstance(chat_id, str):
+                        if chat_id.isdigit():
+                            chat_id = int(chat_id)
+
+                    try:
+                        self.send_message(chat_id, text, self.keyboards[keyboard])
+                    except Exception:
+                        continue
+
+                    del self.tasks[index]
+
+            self.lock.release()
+
+            time.sleep(0.6)
+
     def is_available(self):
         pass
+
+    def run_action(self, name, event={}):
+
+        if name is None:
+            return
+
+        args = {**self.configurations, **event}
+
+        self.program.action_manager.add_task(name, args)
 
     def run(self):
         pass
@@ -299,8 +361,6 @@ class VKBot(Bot):
 
         def __init__(self, vkbot, chat_id):
             self.reg_code = None
-            self.categories_start_values = None
-            self.logged_users = None
             self.id = chat_id
             self.vkbot = vkbot
             self.name = None
@@ -313,8 +373,8 @@ class VKBot(Bot):
 
         def __prepare_variables(self):
 
-            self.logged = self.database.check('chats', [('id', self.id), ('logged', True)], unpack=True)
-            self.for_clients = self.database.check('chats', [('id', self.id), ('for_clients', True)])
+            self.logged = self.database.check('chats', conds=[('id', self.id), ('logged', True)], unpack=True)
+            self.for_clients = self.database.check('chats', conds=[('id', self.id), ('for_clients', True)])
 
             if not self.logged:
                 if not self.database.select('chats', ['code'], [('id', self.id)], unpack=True):
@@ -340,8 +400,8 @@ class VKBot(Bot):
             self.logged = True
             self.database.update('chats', [('logged', True)], [('id', self.id)])
 
-            if not self in self.logged_users:
-                self.logged_users.append(self)
+            if not self in self.vkbot.logged_users:
+                self.vkbot.logged_users.append(self)
 
             if 'main' in self.vkbot.keyboards:
                 self.database.update('chats', [('keyboard', 'main')], [('id', self.id)])
@@ -349,7 +409,7 @@ class VKBot(Bot):
             # SET START VALUES OF CATEGORIES
             columns = []
 
-            for category, value in self.categories_start_values:
+            for category, value in self.vkbot.categories_start_values.items():
                 columns.append((category, value))
 
             self.database.update('chats', columns, [('id', self.id)])
@@ -383,6 +443,10 @@ class VKBot(Bot):
 
             self.vkbot.log_msg(6501, (category))
 
+        def set_chat_for_clients_state(self, value):
+            self.for_clients = value
+            self.database.update('chats', ('for_clients', value), [('id', self.id)])
+
     def __init__(self, program):
         Bot.__init__(self, program, 'vkbot')
         
@@ -391,12 +455,6 @@ class VKBot(Bot):
         self.longpoll = None
         self.upload = None
         self.session = None
-        self.tasks = list()
-        self.tasks_thread = Thread(target=self.tasks_loop, daemon=True)
-
-        self.was_started = False
-
-        self.lock = Lock()
 
         self.set_name('VKBot')
 
@@ -413,7 +471,11 @@ class VKBot(Bot):
         self._Bot__import_settings()
 
         with open(f'{BASE_DIR}/configs/{self.name}/group_id') as f:
-            self.group_id = int(f.read())
+            try:
+                self.group_id = int(f.read())
+            except ValueError:
+                self.group_id = None
+                self.log_msg(605, ('configs/vkbot/group_id'), color='red')
 
     def __import_chats(self):
 
@@ -596,61 +658,20 @@ class VKBot(Bot):
         for user in self.category_users[category]:
             self.add_task('send_message', [user.get_id(), message])
 
-    def add_task(self, action, args, kwargs={}):
-        self.lock.acquire()
-        self.tasks.append((action, args, kwargs))
-        self.lock.release()
+    def send_message(self, chat_id, text, keyboard):
 
-    def tasks_loop(self):
-
-        def send_message(chat_id, text, keyboard):
-
-            self.session.messages.send(
-                peer_id=chat_id,
-                message=text,
-                random_id=randint(1, 121314),
-                keyboard=keyboard
-            )
-
-        while self.program.get_status():
-
-            self.lock.acquire()
-
-            for index, task in enumerate(self.tasks):
-
-                action, args, kwargs = task
-
-                if action == 'send_message':
-                    chat_id, text = args
-
-                    if 'keyboard' in kwargs and not kwargs['keyboard'] in self.keyboards:
-                        self.log_msg(633, (kwargs['keyboard']))
-                        keyboard = None
-                    elif 'keyboard' not in kwargs:
-                        keyboard = None
-                    else:
-                        keyboard = kwargs['keyboard']
-
-                    if isinstance(chat_id, str):
-                        if chat_id.isdigit():
-                            chat_id = int(chat_id)
-
-                    try:
-                        send_message(chat_id, text, self.keyboards[keyboard])
-                    except Exception:
-                        continue
-
-                    del self.tasks[index]
-
-            self.lock.release()
-
-            time.sleep(0.6)
+        self.session.messages.send(
+            peer_id=chat_id,
+            message=text,
+            random_id=randint(1, 121314),
+            keyboard=keyboard
+        )
 
     def run(self):
 
         time.sleep(1)
 
-        if not CONFIG['bots']:
+        if not CONFIG['bots'] or self.group_id is None or self.status_checking:
             return
 
         was_errors = False
@@ -688,15 +709,6 @@ class VKBot(Bot):
                 except Exception:
                     continue
 
-    def run_action(self, name, event={}):
-
-        if name is None:
-            return
-
-        args = {**self.configurations, **event}
-
-        self.program.action_manager.add_task(name, args)
-
     def listen_longpoll(self):
 
         def new_message(event):
@@ -704,13 +716,14 @@ class VKBot(Bot):
             chat_id = event.object.peer_id
             user_id = event.object.from_id
 
+            chat = self.Chat(self, chat_id)
+
             args = {
                 'text': text,
                 'chat_id': chat_id,
-                'user_id': user_id
+                'user_id': user_id,
+                'chat' : chat
             }
-
-            chat = self.Chat(self, chat_id)
 
             if not chat.is_logged():
 
@@ -728,6 +741,16 @@ class VKBot(Bot):
 
                 self.add_task('send_message', [chat_id, MESSAGES['6202']])
 
+            if chat_id in self.chats_for_clients:
+                
+                try:
+                    json_data = json.loads(text)
+                    self.program.client_manager.process_request(chat, json_data)
+                except:
+                    pass
+
+            return
+
             for mode, message, action in self.actions:
 
                 if not mode and text in message:
@@ -742,3 +765,198 @@ class VKBot(Bot):
 
             if event.type == VkBotEventType.MESSAGE_NEW:
                 new_message(event)
+
+
+class TeleBot(Bot):
+
+    class Chat:
+
+        def __init__(self, telebot, chat_id):
+            self.reg_code = None
+            self.id = chat_id
+            self.telebot = telebot
+            self.name = None
+            self.for_clients = False
+            self.logged = None
+
+            self.database = Database(f'{BASE_DIR}/databases/{telebot.name}', log_dir=f'{BASE_DIR}/logs')
+
+            self.__prepare_variables()
+
+        def __prepare_variables(self):
+
+            self.logged = self.database.check('chats', conds=[('id', self.id), ('logged', True)], unpack=True)
+            self.for_clients = self.database.check('chats', conds=[('id', self.id), ('for_clients', True)])
+
+            if not self.logged:
+                if not self.database.select('chats', ['code'], [('id', self.id)], unpack=True):
+                    self.reg_code = randint(100000, 999999)
+                    self.database.insert('chats', [('id', self.id), ('code', self.reg_code), ('for_clients', False),
+                                                   ('logged', False)])
+                    return
+                self.reg_code = self.database.last_response
+
+        def is_logged(self):
+            return bool(self.logged)
+
+        def log_in(self, code):
+
+            if not isinstance(code, int):
+                return False
+
+            if not code == self.reg_code:
+                self.reg_code = randint(100000, 999999)
+                self.database.update('chats', [('code', self.reg_code)], [('id', self.id)])
+                return False
+
+            self.logged = True
+            self.database.update('chats', [('logged', True)], [('id', self.id)])
+
+            if not self in self.telebot.logged_users:
+                self.telebot.logged_users.append(self)
+
+            if 'main' in self.telebot.keyboards:
+                self.database.update('chats', [('keyboard', 'main')], [('id', self.id)])
+
+            # SET START VALUES OF CATEGORIES
+            columns = []
+
+            for category, value in self.telebot.categories_start_values.items():
+                columns.append((category, value))
+
+            self.database.update('chats', columns, [('id', self.id)])
+
+            return True
+
+        def get_reg_code(self):
+            return self.reg_code
+
+        def get_id(self):
+            return self.id
+
+        def send_message(self, text):
+            self.telebot.add_task('send_message', [self.id, text])
+
+        def set_category(self, category, value):
+
+            if category in self.telebot.user_categories and category != 'all':
+                self.database.update('chats', [(category, value)], [('id', self.id)])
+
+                if value:
+                    self.telebot.log_msg(651, (self.id, category))
+                    if self not in self.telebot.category_users[category]:
+                        self.telebot.category_users[category].append(self)
+                else:
+                    self.telebot.log_msg(652, (self.id, category))
+                    if self in self.telebot.category_users[category]:
+                        self.telebot.category_users[category].remove(self)
+
+                return
+
+            self.telebot.log_msg(6501, (category))
+
+    def __init__(self, program):
+        Bot.__init__(self, program, 'telebot')
+
+        self._Bot__import_settings()
+
+        self.set_name('TeleBot')
+
+    def run(self):
+
+        time.sleep(1)
+
+        if not CONFIG['bots'] or not self.status_checking:
+            return
+
+        self.bot = telebot.TeleBot(self.token)
+
+        self.init_handlers()
+
+        self.tasks_thread.start()
+
+        while self.program.get_status():
+            try:
+                self.listen_longpoll()
+            except (ConnectionError, AttributeError):
+                self.log_msg(6101, (MESSAGES['6104']), color='orange')
+                time.sleep(5)
+
+    def init_handlers(self):
+
+        @self.bot.message_handler(commands=['start', 'help'])
+        def send_welcome(message):
+            self.bot.reply_to(message, "Howdy, how are you doing?")
+
+        @self.bot.message_handler(func=lambda message: True)
+        def new_message(message):
+            
+            text = message.text.lower()
+            chat_id = message.chat.id
+            user_id = message.from_user.id
+
+            chat = self.Chat(self, chat_id)
+
+            args = {
+                'text': text,
+                'chat_id': chat_id,
+                'user_id': user_id,
+                'chat' : chat
+            }
+
+            if not chat.is_logged():
+
+                if not len(text) == 6 and not text.isdigit():
+                    first_name = message.from_user.first_name
+                    self.log_msg(6201, (first_name, chat.get_reg_code()), no_capitalize=True)
+                    self.add_task('send_message', [chat_id, 'Введите код: '])
+                    return
+
+                if not chat.log_in(int(text)):
+                    first_name = message.from_user.first_name
+                    self.log_msg(6201, (first_name, chat.get_reg_code()), no_capitalize=True)
+                    self.add_task('send_message', [chat_id, 'Введите код: '])
+                    return
+
+                self.add_task('send_message', [chat_id, MESSAGES['6202']], {'keyboard': 'main'})
+
+            for mode, message, action in self.actions:
+
+                if not mode and text in message:
+                    self.run_action(action, args)
+                    break
+
+                if message in text:
+                    self.run_action(action, args)
+                    break
+
+    def send_message(self, chat_id, text, keyboard=None):
+        self.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
+
+    def listen_longpoll(self):
+        self.bot.infinity_polling()
+
+
+    #    # TASK MANAGER
+    #     self.vk = None
+    #     self.longpoll = None
+    #     self.upload = None
+    #     self.session = None
+    #     self.tasks = list()
+    #     self.tasks_thread = Thread(target=self.tasks_loop, daemon=True)
+
+    #     self.was_started = False
+
+    #     self.lock = Lock()
+
+    #     self.set_name('VKBot')
+
+    #     if self.__check_keyboard_config():
+    #         self.__init_keyboards()
+
+    #     self.__import_settings()
+    #     self.__import_chats()
+
+    #     self.__prepare_tasks()      
+
+
