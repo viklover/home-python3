@@ -2,6 +2,7 @@ import os
 import time
 import json
 import datetime
+import traceback
 
 import vk_api
 
@@ -638,7 +639,7 @@ class VKBot(Bot):
                     try:
                         send_message(chat_id, text, self.keyboards[keyboard])
                     except Exception:
-                        continue
+                        traceback.print_exc()
 
                     del self.tasks[index]
 
@@ -686,6 +687,7 @@ class VKBot(Bot):
                 try:
                     self.listen_longpoll()
                 except Exception:
+                    traceback.print_exc()
                     continue
 
     def run_action(self, name, event={}):

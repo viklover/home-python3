@@ -904,7 +904,7 @@ class ActionManager(Block, Thread):
 
             try:
                 self.list_of_actions[name](self.program, self.vars, args)
-            except ZeroDivisionError as e:
+            except Exception as e:
                 self.log_msg(82, (name, e), color='red')
 
             self.tasks.task_done()
