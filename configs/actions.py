@@ -69,10 +69,12 @@ def send_security_choice(program, vars, args):
 def set_chat_for_clients_state(program, vars, args):
 
     if 'клиентским' in args['text']:
-        args['chat'].set_chat_for_clients_state(False)
+        args['chat'].set_chat_for_clients_state(True)
     
     if 'пользовательским' in args['text']:
-        args['char'].set_chat_for_clients_state(True)
+        args['chat'].set_chat_for_clients_state(False)
+
+    args['chat'].send_message('Принял ваши настройки')
 
 def set_security_category(program, vars, args):
 
@@ -176,7 +178,6 @@ actions = {
     "set_security_category": set_security_category,
     "reboot_program": reboot_program,
     "shutdown_program": shutdown_program,
-    "clear_logs": clear_logs,
     "chat_for_clients": set_chat_for_clients_state,
     "fldoor_off" : lambda x, y, z: play_track('/home/pi/home-python3/audio/FlDoor/close.wav'),
     "fldoor_on" : lambda x, y, z: play_track('/home/pi/home-python3/audio/FlDoor/open.wav'),

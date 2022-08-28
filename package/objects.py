@@ -1345,15 +1345,15 @@ class Sensor(VObject):
                 self.avg = round(sum(self.values) / len(self.values), 1)
 
             event['max'], event['min'], event['avg'] = self.max, self.min, self.avg
+            event['vector'] = self.get_vector()
 
             self.was_success = True
 
             self.log_msg(7211, (value))
             self.last_success_event = event
             self.save_value(value)
+            self.__send_to_clients(event)
             return
-
-        event['vector'] = self.get_vector()
 
         self.__send_to_clients(event)
 

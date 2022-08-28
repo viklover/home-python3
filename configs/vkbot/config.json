@@ -27,7 +27,7 @@
                     {
                         "type" : "text",
                         "label" : "Охрана",
-                        "color" : "PRIMARY"
+                        "color" : "SECONDARY"
                     }
                 ],
                 [

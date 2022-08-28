@@ -24,6 +24,8 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 
 class Bot(Block, Thread):
 
+    FREQUENCY_SEND = 1.5
+
     def __init__(self, program, name):
         Block.__init__(self, name.capitalize())
         Thread.__init__(self)
@@ -34,6 +36,8 @@ class Bot(Block, Thread):
 
         self.tasks = []
         self.lock = Lock()
+
+        self.timer = None
 
         self.tasks_thread = Thread(target=self.tasks_loop, daemon=True)
         self.was_started = False
@@ -50,7 +54,6 @@ class Bot(Block, Thread):
         self.status_checking = self.__check_config_files()
 
         if not self.status_checking:
-            print('ошибка проверки конфиг файлов')
             return
 
         self.__prepare_variables()
@@ -315,8 +318,6 @@ class Bot(Block, Thread):
                 if action == 'send_message':
                     chat_id, text = args
 
-                    print(self.keyboards)
-
                     if 'keyboard' in kwargs and not kwargs['keyboard'] in self.keyboards:
                         self.log_msg(633, (kwargs['keyboard']))
                         keyboard = None
@@ -328,6 +329,14 @@ class Bot(Block, Thread):
                     if isinstance(chat_id, str):
                         if chat_id.isdigit():
                             chat_id = int(chat_id)
+
+                            if self.timer is None:
+                                self.timer = time.time()
+                            else:
+                                difference = time.time() - self.timer
+                                if Bot.FREQUENCY_SEND - difference > 0:
+                                    time.sleep(Bot.FREQUENCY_SEND - difference)
+                                self.timer = time.time()
 
                     try:
                         self.send_message(chat_id, text, self.keyboards[keyboard])
@@ -375,7 +384,7 @@ class VKBot(Bot):
         def __prepare_variables(self):
 
             self.logged = self.database.check('chats', conds=[('id', self.id), ('logged', True)], unpack=True)
-            self.for_clients = self.database.check('chats', conds=[('id', self.id), ('for_clients', True)])
+            self.for_clients = self.database.check('chats', conds=[('id', self.id), ('for_clients', True)], unpack=True)
 
             if not self.logged:
                 if not self.database.select('chats', ['code'], [('id', self.id)], unpack=True):
@@ -423,6 +432,9 @@ class VKBot(Bot):
         def get_id(self):
             return self.id
 
+        def send(self, message):
+            self.send_message(message)
+
         def send_message(self, text):
             self.vkbot.add_task('send_message', [self.id, text])
 
@@ -446,7 +458,7 @@ class VKBot(Bot):
 
         def set_chat_for_clients_state(self, value):
             self.for_clients = value
-            self.database.update('chats', ('for_clients', value), [('id', self.id)])
+            self.database.update('chats', [('for_clients', value)], [('id', self.id)])
 
     def __init__(self, program):
         Bot.__init__(self, program, 'vkbot')
@@ -456,6 +468,8 @@ class VKBot(Bot):
         self.longpoll = None
         self.upload = None
         self.session = None
+
+        self.timer = None
 
         self.set_name('VKBot')
 
@@ -484,6 +498,7 @@ class VKBot(Bot):
 
         self.chats = dict()
         self.chats_for_clients = list()
+        self.chats_for_clients_ids = list()
 
         columns = ['id', 'for_clients', *self.user_categories.copy()[1:]]
 
@@ -497,6 +512,7 @@ class VKBot(Bot):
 
             if for_clients:
                 self.chats_for_clients.append(self.chats[id])
+                self.chats_for_clients_ids.append(int(id))
                 return
 
             for category, value in categories.items():
@@ -661,46 +677,18 @@ class VKBot(Bot):
 
     def send_message(self, chat_id, text, keyboard):
 
-<<<<<<< HEAD
         self.session.messages.send(
             peer_id=chat_id,
             message=text,
             random_id=randint(1, 121314),
             keyboard=keyboard
         )
-=======
-                if action == 'send_message':
-                    chat_id, text = args
-
-                    if 'keyboard' in kwargs and not kwargs['keyboard'] in self.keyboards:
-                        self.log_msg(633, (kwargs['keyboard']))
-                        keyboard = None
-                    elif 'keyboard' not in kwargs:
-                        keyboard = None
-                    else:
-                        keyboard = kwargs['keyboard']
-
-                    if isinstance(chat_id, str):
-                        if chat_id.isdigit():
-                            chat_id = int(chat_id)
-
-                    try:
-                        send_message(chat_id, text, self.keyboards[keyboard])
-                    except Exception:
-                        traceback.print_exc()
-
-                    del self.tasks[index]
-
-            self.lock.release()
-
-            time.sleep(0.6)
->>>>>>> experiment
 
     def run(self):
 
         time.sleep(1)
 
-        if not CONFIG['bots'] or self.group_id is None or self.status_checking:
+        if not CONFIG['bots'] or self.group_id is None or not self.status_checking:
             return
 
         was_errors = False
@@ -755,7 +743,7 @@ class VKBot(Bot):
                 'chat' : chat
             }
 
-            if not chat.is_logged():
+            if not chat.is_logged() and not chat.for_clients:
 
                 if not len(text) == 6 and not text.isdigit():
                     user = self.session.users.get(user_ids=user_id)[0]
@@ -771,15 +759,15 @@ class VKBot(Bot):
 
                 self.add_task('send_message', [chat_id, MESSAGES['6202']])
 
-            if chat_id in self.chats_for_clients:
+            if chat_id in self.chats_for_clients_ids:
                 
                 try:
-                    json_data = json.loads(text)
+                    json_data = json.loads(event.object.text)
                     self.program.client_manager.process_request(chat, json_data)
                 except:
                     pass
 
-            return
+                return
 
             for mode, message, action in self.actions:
 

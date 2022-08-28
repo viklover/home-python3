@@ -102,7 +102,7 @@
                 "vkpay" : ["add_vkpay_button", ["hash"]],
                 "open_app" : ["add_vkapps_button", ["app_id", "owner_id", "label", "hash"]]
             },
-            "colors" : ["PRIMARY", "DEFAULT", "POSITIVE", "NEGATIVE"]
+            "colors" : ["PRIMARY", "SECONDARY", "POSITIVE", "NEGATIVE"]
         }
     },
     "telebot" : 

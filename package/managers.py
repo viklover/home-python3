@@ -776,6 +776,9 @@ class ClientManager(Block, Thread):
 
     def send_message_to_all(self, message, event=False):
 
+        for chat in self.program.vkbot.chats_for_clients:
+            self.tasks.put((chat, message))
+
         if not event:
 
             for client in self.clients:
@@ -941,10 +944,6 @@ class ActionManager(Block, Thread):
             try:
                 self.list_of_actions[name](self.program, self.vars, args)
             except Exception as e:
-<<<<<<< HEAD
-                traceback.print_exec()
-=======
->>>>>>> experiment
                 self.log_msg(82, (name, e), color='red')
 
             self.tasks.task_done()
